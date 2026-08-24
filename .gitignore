@@ -1,0 +1,10 @@
+# Environment — never commit real credentials
+.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Playwright browser binaries
+playwright/
