@@ -1,4 +1,4 @@
-import os, csv, json, time, subprocess
+import os, csv, json, time, subprocess, random
 from datetime import datetime, timezone, timedelta
 from dotenv import load_dotenv
 
@@ -26,6 +26,15 @@ def is_market_open(now: datetime) -> bool:
         return False
     t = (now.hour, now.minute)
     return MARKET_START <= t <= MARKET_END
+
+
+def get_random_session_time() -> tuple[int, int]:
+    """Pick a random time between 09:15 and 15:20 IST (leaves 10 min buffer before close)."""
+    # Total minutes available: 09:15 to 15:20 = 365 minutes
+    start_minutes = 9 * 60 + 15   # 555
+    end_minutes   = 15 * 60 + 20  # 920
+    rand_minutes  = random.randint(start_minutes, end_minutes)
+    return rand_minutes // 60, rand_minutes % 60
 
 
 def wait_for_market_open():
@@ -130,49 +139,56 @@ def run_session(pw, browser, page, session_dir, csv_path, date_str):
 
 
 def run():
-    print("[INFO] NIFTY Options Collector — Mon-Fri 09:15-15:30 IST")
-    print(f"[INFO] {TOTAL_SHOTS} captures/session, {INTERVAL_SEC}s apart")
+    print("[INFO] NIFTY Options Collector — one random session per market day")
 
     while True:
+        # Wait until market is open
         wait_for_market_open()
+
+        now = ist_now()
+
+        # Pick a random time for today's session
+        h, m = get_random_session_time()
+
+        # If random time is still in the future today, wait for it
+        target = now.replace(hour=h, minute=m, second=0, microsecond=0)
+        if now < target:
+            secs = (target - now).total_seconds()
+            print(f"[INFO] Today's random session time: {h:02d}:{m:02d} IST — waiting {secs:.0f}s ({secs/60:.1f} min) ...")
+            time.sleep(secs)
+        else:
+            # Random time already passed today — start immediately
+            print(f"[INFO] Random time {h:02d}:{m:02d} already passed, starting now ...")
 
         now      = ist_now()
         date_str = now.strftime("%Y-%m-%d")
+        session_name = now.strftime("%H%M")
 
         shots_day = os.path.join(REPO_PATH, "screenshots", date_str)
         opts_day  = os.path.join(REPO_PATH, "options",     date_str)
         os.makedirs(shots_day, exist_ok=True)
         os.makedirs(opts_day,  exist_ok=True)
 
-        print(f"\n[INFO] Market open — {date_str}")
+        session_dir = os.path.join(shots_day, session_name)
+        csv_path    = os.path.join(opts_day,  f"{session_name}.csv")
+
+        print(f"\n[SESSION {session_name}] Starting 10-capture session for {date_str} ...")
         pw, browser, page = open_browser()
-
         try:
-            while is_market_open(ist_now()):
-                now          = ist_now()
-                # Session name = start time without seconds e.g. "0940"
-                session_name = now.strftime("%H%M")
-                session_dir  = os.path.join(shots_day, session_name)
-                csv_path     = os.path.join(opts_day,  f"{session_name}.csv")
-
-                print(f"\n[SESSION {session_name}] Starting 10-capture session ...")
-                run_session(pw, browser, page, session_dir, csv_path, date_str)
-
-                # If market still open, wait until next session start (next minute boundary)
-                if is_market_open(ist_now()):
-                    # Next session starts 10 minutes from session start
-                    next_session = now + timedelta(minutes=TOTAL_SHOTS)
-                    wait_secs    = (next_session - ist_now()).total_seconds()
-                    if wait_secs > 0:
-                        print(f"[INFO] Next session at {next_session.strftime('%H:%M')} — "
-                              f"waiting {wait_secs:.0f}s ...")
-                        time.sleep(wait_secs)
+            run_session(pw, browser, page, session_dir, csv_path, date_str)
         finally:
             close_browser(pw, browser)
 
-        print(f"\n[INFO] Market closed for {date_str}. Pushing to git ...")
+        print(f"[INFO] Session done. Pushing to git ...")
         git_push(date_str)
-        print(f"[INFO] Done for {date_str}.")
+
+        # Sleep until next market day (wait past today's close + buffer)
+        now = ist_now()
+        # Sleep until tomorrow 00:01, then the while loop will wait for next market open
+        tomorrow = (now + timedelta(days=1)).replace(hour=0, minute=1, second=0, microsecond=0)
+        secs = (tomorrow - now).total_seconds()
+        print(f"[INFO] Done for {date_str}. Sleeping until tomorrow ({secs/3600:.1f}h) ...")
+        time.sleep(secs)
 
 
 if __name__ == "__main__":
