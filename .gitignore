@@ -8,3 +8,10 @@ __pycache__/
 
 # Playwright browser binaries
 playwright/
+
+# Logs
+logs/
+
+# Captured data — stays local, not committed
+screenshots/
+options/
