@@ -1,63 +1,6 @@
-# NIFTY Options Chain Collector
+# NIFTY Options Chain — Latest Session Data
 
-Automatically captures the TradingView NIFTY options chain every minute for 10-minute sessions (Mon–Fri, 09:15–15:30 IST). Saves screenshots, full HTML, and structured CSV/JSON data per session.
-
-## How to Run
-
-**One session right now (10 captures):**
-```
-python -X utf8 run_once.py
-```
-
-**Full day automated (Mon–Fri 09:15–15:30):**
-```
-python -X utf8 main.py
-```
-
-**Set up Task Scheduler (run once as Administrator):**
-```
-setup_scheduler.bat
-```
-
-## Output Structure
-
-```
-options/
-└── YYYY-MM-DD/
-    └── HHMM.csv          ← one CSV per session, all 10 timestamps
-
-screenshots/
-└── YYYY-MM-DD/
-    └── HHMM/             ← session folder
-        └── HHMMSS/       ← one folder per capture
-            ├── screenshot.png
-            ├── page.html
-            └── options.json
-```
-
-## CSV Columns
-
-| Column | Description |
-|--------|-------------|
-| symbol | NIFTY |
-| timestamp | HH:MM:SS of capture |
-| expiry | Option expiry date |
-| strike | Strike price |
-| type | CE or PE |
-| delta | Delta greek |
-| be | Breakeven price |
-| iv | Implied volatility % |
-| theor | Theoretical price |
-| bid | Bid price |
-| ask | Ask price |
-| distance | Distance from spot |
-| volume | Volume |
-
----
-
-## Latest Session Data — 2026-09-04 | 10:59 to 11:08
-
-> Session `1059` · 10 timestamps · 12 strikes · Expiry: September 8
+## 2026-09-04 | Session 1059 | 10:59 to 11:08 | Expiry: September 8
 
 | Date | Time | Strike | Type | Delta | IV% | Bid | Ask | Theor | Volume |
 |------|------|--------|------|-------|-----|-----|-----|-------|--------|
@@ -181,5 +124,3 @@ screenshots/
 | 2026-09-04 | 11:08:58 | 23900 | PE | -0.38 | 8.62 | 58.50 | 58.60 | 59.90 | 157,835,080 |
 | 2026-09-04 | 11:08:58 | 23950 | CE | 0.53 | 8.35 | 126.55 | 126.60 | 94.75 | 114,864,620 |
 | 2026-09-04 | 11:08:58 | 23950 | PE | -0.46 | 8.33 | 76.00 | 76.15 | 76.60 | 118,497,405 |
-
-*Note: Table shows September 8 expiry strikes only (23700–23950). Full data including 24000–24250 strikes available in the CSV.*
